@@ -21,7 +21,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
 
-    # ✅ Tell all run steps to execute inside the frontend/ folder
     defaults:
       run:
         working-directory: ./frontend
@@ -35,7 +34,6 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
-          # ✅ Tell npm cache to look for lock file inside the subfolder
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
