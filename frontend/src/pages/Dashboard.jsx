@@ -1,32 +1,27 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Navbar } from '../layout/Navbar';
+import { Navbar } from '../components/layout/Navbar';
 import { gsap } from 'gsap';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'; // Added useNavigate and useLocation
-import { 
-  FaCalendar, 
-  FaUser, 
-  FaChartLine, 
-  FaClock, 
-  FaPlus, 
-  FaHistory, 
-  FaHome, 
-  FaStar,
-  FaTicketAlt,
-  FaUserCog,
-  FaCog
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import {
+  FaCalendar,
+  FaUser,
+  FaClock,
+  FaPlus,
+  FaHistory,
 } from 'react-icons/fa';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import api from '../api/client';
 
 export const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState(null); // Added authError state
+  const [authError, setAuthError] = useState(null);
   const statsRef = useRef(null);
   const tableRef = useRef(null);
-  const navigate = useNavigate(); // Added useNavigate hook
-  const location = useLocation(); // Added useLocation hook
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Organizer verification logic
+  // Check if user is an organizer
   useEffect(() => {
     const verifyOrganizerStatus = async () => {
       const token = localStorage.getItem('token');
@@ -36,23 +31,19 @@ export const Dashboard = () => {
       }
 
       try {
-        const response = await fetch('/api/organizers/profile', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            navigate(`/organizer-form?redirect=${encodeURIComponent(location.pathname)}`, { 
-              replace: true,
-              state: { error: 'You need to be an organizer to create events' }
-            });
-          } else {
-            throw new Error('Failed to verify organizer status');
-          }
-        }
+        await api.getOrganizerProfile(token);
+        // If successful, user is an organizer – allow access
       } catch (error) {
-        console.error('Organizer verification error:', error);
-        setAuthError('Error verifying organizer status. Please try again.');
+        // If 404, not an organizer – redirect to organizer form
+        if (error.response?.status === 404) {
+          navigate(`/organizer-form?redirect=${encodeURIComponent(location.pathname)}`, {
+            replace: true,
+            state: { error: 'You need to be an organizer to create events' },
+          });
+        } else {
+          console.error('Organizer verification error:', error);
+          setAuthError('Error verifying organizer status. Please try again.');
+        }
       }
     };
 
@@ -65,39 +56,39 @@ export const Dashboard = () => {
     navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`, { replace: true });
   };
 
-  // Existing data fetching useEffect
+  // Fetch dashboard data
   useEffect(() => {
     const fetchData = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const response = await fetch('/api/dashboard/summary', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        
-        if (!response.ok) throw new Error('Failed to fetch dashboard data');
-        
-        const data = await response.json();
+        const data = await api.getDashboard(token);
         setDashboardData(data);
         setLoading(false);
 
         // Animations
-        gsap.from(statsRef.current.children, {
-          duration: 1,
-          y: 50,
-          opacity: 0,
-          stagger: 0.2,
-          ease: "power2.out"
-        });
-
-        gsap.from(tableRef.current, {
-          duration: 1,
-          y: 50,
-          opacity: 0,
-          ease: "power2.out",
-          delay: 0.3
-        });
-
+        if (statsRef.current) {
+          gsap.from(statsRef.current.children, {
+            duration: 1,
+            y: 50,
+            opacity: 0,
+            stagger: 0.2,
+            ease: 'power2.out',
+          });
+        }
+        if (tableRef.current) {
+          gsap.from(tableRef.current, {
+            duration: 1,
+            y: 50,
+            opacity: 0,
+            ease: 'power2.out',
+            delay: 0.3,
+          });
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         setLoading(false);
@@ -107,35 +98,40 @@ export const Dashboard = () => {
     fetchData();
   }, []);
 
+  // Pie chart data
   const participationData = [
     { name: 'Participated', value: dashboardData?.summary.avg_participation_rate || 0 },
     { name: 'Remaining', value: 100 - (dashboardData?.summary.avg_participation_rate || 0) },
   ];
 
-  if (loading) return (
-    <div className="min-h-screen bg-[var(--bg-purple)] flex items-center justify-center">
-      <div className="text-white text-2xl animate-pulse">Loading dashboard...</div>
-    </div>
-  );
-
-  if (authError) return (
-    <div className="min-h-screen bg-[var(--bg-purple)] flex items-center justify-center">
-      <div className="text-red-300 text-xl text-center p-8 bg-white/10 rounded-xl">
-        {authError}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-purple)] flex items-center justify-center">
+        <div className="text-white text-2xl animate-pulse">Loading dashboard...</div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-purple)] flex items-center justify-center">
+        <div className="text-red-300 text-xl text-center p-8 bg-white/10 rounded-xl">
+          {authError}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--bg-purple)] font-sans">
-      <Navbar  />
+      <Navbar />
 
       <div className="p-8 pt-20">
         {/* Header Section */}
         <div className="flex justify-between items-center mb-12">
           <h1 className="text-3xl font-bold text-white">Tableau de bord</h1>
           <div className="flex gap-4">
-            <NavLink 
+            <NavLink
               to="/create-event"
               className="bg-white text-[#4a2c8a] px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-[#d6b9f0] transition-colors"
             >
@@ -152,7 +148,9 @@ export const Dashboard = () => {
           <div className="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between hover:shadow-xl transition-shadow">
             <div>
               <p className="text-gray-500 text-sm">Total d'événements</p>
-              <p className="text-3xl font-bold text-[#4a2c8a]">{dashboardData?.summary.total_events || 0}</p>
+              <p className="text-3xl font-bold text-[#4a2c8a]">
+                {dashboardData?.summary.total_events || 0}
+              </p>
             </div>
             <FaCalendar className="text-[#4a2c8a] text-3xl" />
           </div>
@@ -160,7 +158,9 @@ export const Dashboard = () => {
           <div className="bg-white p-6 rounded-xl shadow-lg flex items-center justify-between hover:shadow-xl transition-shadow">
             <div>
               <p className="text-gray-500 text-sm">Inscriptions totales</p>
-              <p className="text-3xl font-bold text-[#4a2c8a]">{dashboardData?.summary.total_registrations || 0}</p>
+              <p className="text-3xl font-bold text-[#4a2c8a]">
+                {dashboardData?.summary.total_registrations || 0}
+              </p>
             </div>
             <FaUser className="text-[#4a2c8a] text-3xl" />
           </div>
@@ -180,8 +180,8 @@ export const Dashboard = () => {
                       outerRadius={40}
                     >
                       {participationData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
+                        <Cell
+                          key={`cell-${index}`}
                           fill={index === 0 ? '#4a2c8a' : '#e0e0e0'}
                         />
                       ))}
@@ -196,7 +196,7 @@ export const Dashboard = () => {
             <div>
               <p className="text-gray-500 text-sm">Prochain événement</p>
               <p className="text-3xl font-bold text-[#4a2c8a]">
-                {dashboardData?.summary.next_event 
+                {dashboardData?.summary.next_event
                   ? new Date(dashboardData.summary.next_event.date).toLocaleDateString()
                   : 'Aucun'}
               </p>

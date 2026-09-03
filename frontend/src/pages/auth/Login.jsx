@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import validator from "validator";
 import { FaFacebookF, FaGoogle, FaApple } from "react-icons/fa";
-import axios from 'axios';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from "react-router-dom";
+import validator from "validator";
+import api from "../../api/client";
 
 export const Login = () => {
     const navigate = useNavigate();
@@ -25,15 +25,15 @@ export const Login = () => {
                     : 'Email already verified'
             );
         }
-        
         if (verificationSuccess === 'success') {
             setLoginError('Email verified successfully! Please login');
         }
 
+        // Clean redirect params if any
         const redirectFromQuery = searchParams.get('redirect');
-        console.log("Login - Redirect parameter from query:", redirectFromQuery);
-        const redirectFromStorage = localStorage.getItem('redirectAfterLogin');
-        console.log("Login - Redirect parameter from localStorage:", redirectFromStorage);
+        if (redirectFromQuery) {
+            localStorage.setItem('redirectAfterLogin', redirectFromQuery);
+        }
     }, [searchParams]);
 
     useEffect(() => {
@@ -60,35 +60,24 @@ export const Login = () => {
         if (!isFormValid) return;
 
         try {
-            const response = await axios.post('/api/login', {
-                email,
-                password
-            });
-
-        if (response.data.access_token) {
-            localStorage.setItem('token', response.data.access_token);
-            const redirectFromQuery = searchParams.get('redirect');
-            const redirectFromStorage = localStorage.getItem('redirectAfterLogin');
-            const redirectPath = redirectFromStorage || redirectFromQuery || '/profile';
-            console.log("Login - Final redirect path:", redirectPath);
-            localStorage.removeItem('redirectAfterLogin'); // Clean up
-            navigate(redirectPath, { replace: true });
-        }
+            const response = await api.login(email, password);
+            if (response.access_token) {
+                localStorage.setItem('token', response.access_token);
+                const redirectPath = localStorage.getItem('redirectAfterLogin') || '/profile';
+                localStorage.removeItem('redirectAfterLogin');
+                navigate(redirectPath, { replace: true });
+            }
         } catch (error) {
-            if (error.response) {
-                const { status, data } = error.response;
-                
-                if (status === 401) {
-                    setPasswordError(data.message || "Invalid password");
-                } else if (status === 403) {
-                    setLoginError("Please verify your email first");
-                } else if (status === 404) {
-                    setEmailError(data.message || "Email not found");
-                } else {
-                    setLoginError("Login failed. Please try again.");
-                }
+            // Mock API throws errors with message, but we need to handle like axios
+            const msg = error.message || error.toString();
+            if (msg.includes('Invalid credentials')) {
+                setPasswordError('Invalid password');
+            } else if (msg.includes('Email not verified')) {
+                setLoginError('Please verify your email first');
+            } else if (msg.includes('not found')) {
+                setEmailError('Email not found');
             } else {
-                setLoginError("Network error. Please check your connection.");
+                setLoginError('Login failed. Please try again.');
             }
         }
     };
@@ -169,13 +158,13 @@ export const Login = () => {
                     </div>
 
                     <div className="flex justify-center space-x-4">
-                        <button className="p-3 rounded-full bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] transition-colors">
+                        <button type="button" className="p-3 rounded-full bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] transition-colors">
                             <FaGoogle className="text-xl text-white" />
                         </button>
-                        <button className="p-3 rounded-full bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] transition-colors">
+                        <button type="button" className="p-3 rounded-full bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] transition-colors">
                             <FaFacebookF className="text-xl text-white" />
                         </button>
-                        <button className="p-3 rounded-full bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] transition-colors">
+                        <button type="button" className="p-3 rounded-full bg-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.2)] transition-colors">
                             <FaApple className="text-xl text-white" />
                         </button>
                     </div>

@@ -1,8 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { FaCheck, FaEnvelope, FaInfoCircle, FaPhone, FaMapMarker, FaGlobe, FaBuilding, FaImage, FaUserPlus, FaCog } from 'react-icons/fa';
+import {
+  FaCheck,
+  FaEnvelope,
+  FaInfoCircle,
+  FaPhone,
+  FaMapMarker,
+  FaGlobe,
+  FaBuilding,
+  FaImage,
+  FaUserPlus,
+  FaCog,
+} from 'react-icons/fa';
 import { MdNavigateNext, MdNavigateBefore } from 'react-icons/md';
-import { Navbar } from '../layout/Navbar';
+import { Navbar } from '../components/layout/Navbar';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
+import api from '../api/client';
 
 const initialFormData = {
   email: '',
@@ -40,9 +52,7 @@ export const OrganizerForm = () => {
     if (!token) {
       setAuthError('Please log in to access this page.');
       localStorage.setItem('redirectAfterLogin', location.pathname);
-      const redirectPath = `/login?redirect=${encodeURIComponent(location.pathname)}`;
-      console.log("OrganizerForm - Redirecting to:", redirectPath);
-      navigate(redirectPath, { replace: true });
+      navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`, { replace: true });
     }
   }, [navigate, location.pathname]);
 
@@ -105,9 +115,7 @@ export const OrganizerForm = () => {
     if (!token) {
       setAuthError('Please log in to submit the request.');
       localStorage.setItem('redirectAfterLogin', location.pathname);
-      const redirectPath = `/login?redirect=${encodeURIComponent(location.pathname)}`;
-      console.log("OrganizerForm - Redirecting to:", redirectPath);
-      navigate(redirectPath, { replace: true });
+      navigate(`/login?redirect=${encodeURIComponent(location.pathname)}`, { replace: true });
       return;
     }
 
@@ -122,28 +130,14 @@ export const OrganizerForm = () => {
     formDataToSend.append('document', '');
 
     try {
-      const response = await fetch('/api/organizers/request', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formDataToSend,
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to submit request');
-      }
-
+      await api.requestOrganizer(token, formDataToSend);
       setIsSubmitted(true);
     } catch (error) {
-      setErrors({ submit: error.message });
+      setErrors({ submit: error.message || 'Failed to submit request' });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-
 
   if (authError) {
     return null;
@@ -167,10 +161,6 @@ export const OrganizerForm = () => {
         <div className="flex items-center justify-between mb-12">
           {steps.map((step, index) => {
             const stepNumber = index + 1;
-            const isCompleted = currentStep > stepNumber || (index === 2 && isSubmitted);
-            const isActive = currentStep === stepNumber && !isSubmitted;
-            const isLastStep = stepNumber === steps.length;
-
             return (
               <div key={index} className="flex flex-col items-center flex-1">
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center 

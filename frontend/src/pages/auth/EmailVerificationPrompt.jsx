@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
+import api from "../../api/client";
 
 export const EmailVerificationPrompt = () => {
   const navigate = useNavigate();
@@ -21,21 +21,10 @@ export const EmailVerificationPrompt = () => {
     setResendError("");
 
     try {
-      const response = await axios.post(
-        "/api/email/resend",
-        { email },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        }
-      );
-      setResendSuccess(response.data.message || "Verification email resent successfully!");
+      const response = await api.resendVerification(email);
+      setResendSuccess(response.message || "Verification email resent successfully!");
     } catch (error) {
-      setResendError(
-        error.response?.data?.message || "Failed to resend verification email."
-      );
+      setResendError(error.message || "Failed to resend verification email.");
     } finally {
       setIsResending(false);
     }

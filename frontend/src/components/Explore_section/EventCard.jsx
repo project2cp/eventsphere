@@ -1,72 +1,81 @@
-import React, { useState, useEffect } from 'react';
-import { FaHeart, FaRegHeart, FaComment, FaBookmark, FaSearch, FaChevronDown } from 'react-icons/fa';
-import { 
-  FaTheaterMasks, 
-  FaCampground, 
-  FaCode, 
-  FaUtensils, 
-  FaBriefcase, 
-  FaGraduationCap, 
-  FaRunning 
-} from 'react-icons/fa';
+// src/components/ui/EventCard.jsx
+import React from 'react';
+import { FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
-export const EventCard = ({ event, isFavorite = false, onToggleFavorite }) => {
-  const { id, title, date, location, organizer, price, image } = event;
+export const EventCard = ({ event }) => {
+  const navigate = useNavigate();
+  const { id, title, date, location, category, organizer, image } = event;
+
+  const handleClick = () => {
+    navigate(`/events/${id}`);
+  };
 
   return (
-    <div className="rounded-lg overflow-hidden bg-white shadow-md transition-all duration-300 hover:shadow-lg">
-      <div className="relative">
-        <img src={image} alt={title} className="w-full h-32 object-cover" />
-        <div className="absolute top-2 right-2 flex gap-2">
-          <button 
-            onClick={() => onToggleFavorite(id)} 
-            className="bg-white/80 p-1.5 rounded-full hover:bg-white"
-          >
-            {isFavorite ? 
-              <FaHeart className="text-red-500 text-lg" /> : 
-              <FaRegHeart className="text-gray-600 text-lg" />
-            }
-          </button>
-          <button className="bg-white/80 p-1.5 rounded-full hover:bg-white">
-            <FaComment className="text-gray-600 text-lg" />
-          </button>
-          <button className="bg-white/80 p-1.5 rounded-full hover:bg-white">
-            <FaBookmark className="text-gray-600 text-lg" />
-          </button>
+    <div 
+      className="rounded-lg shadow-md bg-[#251425] hover:shadow-xl hover:scale-102 transition p-3 flex flex-col cursor-pointer h-[400px]"
+      onClick={handleClick}
+    >
+      {/* Image Section */}
+      <div className="w-full h-36 rounded mb-2 overflow-hidden bg-purple-800 flex items-center justify-center relative">
+        {image ? (
+          <img
+            src={image} // ✅ This is now the imported asset (img1, img3, or img4)
+            alt={title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // If image fails, show fallback
+              e.target.style.display = 'none';
+              const parent = e.target.parentElement;
+              const fallback = parent?.querySelector('.fallback-initials');
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        {/* Fallback: show first letter of title */}
+        <div 
+          className="fallback-initials absolute inset-0 flex items-center justify-center text-white text-4xl font-bold"
+          style={{ display: image ? 'none' : 'flex' }}
+        >
+          {title?.charAt(0).toUpperCase() || 'E'}
         </div>
-        {price && (
-          <div className="absolute top-2 left-2 bg-white py-1 px-2 rounded-md font-bold text-sm">
-            {price}
-          </div>
-        )}
       </div>
       
-      <div className="p-4">
-        <h3 className="text-lg font-bold text-gray-800">{title}</h3>
+      {/* Content Section */}
+      <div className="flex-1 flex flex-col">
+        <h3 className="font-semibold text-lg mb-2 text-white line-clamp-1">{title}</h3>
         
-        <div className="flex items-center gap-1 text-sm text-gray-600 mt-2">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span>{date}</span>
+        <div className="flex items-center gap-2 text-white mb-1">
+          <FaCalendarAlt className="text-white flex-shrink-0" />
+          <span className="text-sm">{new Date(date).toLocaleDateString()}</span>
         </div>
         
-        <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span>{location}</span>
+        <div className="flex items-center gap-2 text-white mb-2">
+          <FaMapMarkerAlt className="text-white flex-shrink-0" />
+          <span className="text-sm truncate">{location}</span>
         </div>
-        
-        <div className="flex items-center justify-between mt-3">
-          <div className="text-sm text-gray-500">
-            Organized by: <span className="text-purple-600">{organizer}</span>
+
+        {organizer && (
+          <div className="mt-2 text-sm text-white">
+            Organized by:{" "}
+            <span className="text-white">{typeof organizer === 'string' ? organizer : organizer?.name || 'Unknown'}</span>
           </div>
-          <button className="px-4 py-1.5 bg-purple-100 text-purple-600 rounded-full text-sm font-medium hover:bg-purple-200 transition-colors">
-            Reserve Now
-          </button>
+        )}
+
+        <div className="mt-2 text-sm">
+          <span className="font-semibold text-white">Category:</span>{" "}
+          <span className="text-white">{category}</span>
         </div>
+        
+        <button 
+          className="mt-auto w-full bg-[#B39DDB] text-white py-2 px-4 rounded-md hover:bg-purple-700 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/events/${id}`);
+          }}
+        >
+          Reserve Now
+        </button>
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { EventCard } from "../ui/EventCard";
-import { Navbar } from "../layout/Navbar";
+import { EventCard } from '../components/Explore_section/EventCard';
+import { Navbar } from '../components/layout/Navbar';
 import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaTicketAlt, FaCheckCircle } from 'react-icons/fa';
+import api from '../api/client';
 
 export const EventInfo = () => {
   const { id } = useParams();
@@ -14,15 +15,6 @@ export const EventInfo = () => {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const token = localStorage.getItem('token');
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
-  };
-
-  const navItems = [
-    { text: "My tickets", href: "/my-tickets", className: "underline-effect" },
-  ];
 
   useEffect(() => {
     if (!token) {
@@ -32,98 +24,71 @@ export const EventInfo = () => {
 
     const fetchEventData = async () => {
       try {
-        const response = await fetch(`/api/events/${id}`, { headers });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            localStorage.removeItem('token');
-            navigate('/login');
-            return;
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        const data = await api.getEvent(id);
         setEventData(data);
+        setLoading(false);
       } catch (err) {
         setError(err.message);
-      } finally {
         setLoading(false);
       }
     };
 
     fetchEventData();
-  }, [id, token]);
+  }, [id, token, navigate]);
 
+  // Fetch similar events (only if eventData is loaded)
   useEffect(() => {
-    const fetchSimilarEvents = async () => {
-      if (!eventData?.category) return;
-      
-      try {
-        const response = await fetch(
-          `/api/events?category=${eventData.category}&per_page=3`,
-          { headers }
-        );
+    if (!eventData?.category) return;
 
-        if (!response.ok) throw new Error('Failed to fetch similar events');
-        
-        const { data } = await response.json();
-        setSimilarEvents(data.filter(event => event.id !== parseInt(id)));
+    const fetchSimilarEvents = async () => {
+      try {
+        const params = { category: eventData.category, per_page: 3 };
+        const data = await api.getEvents(params);
+        const filtered = data.data.filter((event) => event.id !== parseInt(id));
+        setSimilarEvents(filtered);
       } catch (err) {
         console.error('Error fetching similar events:', err);
       }
     };
 
-    if (eventData) fetchSimilarEvents();
-  }, [eventData, id, token]);
+    fetchSimilarEvents();
+  }, [eventData, id]);
 
   const handleRegister = async () => {
     try {
-      const response = await fetch(`/api/events/${id}/buy-ticket`, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({ quantity: 1 }) 
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
-
-      // Use the updated event data from the response
-      const updatedEventData = await response.json();
-      setEventData(prev => ({
-        ...prev,
-        ...updatedEventData // Merge the updated data from the backend
-      }));
-
+      await api.buyTicket(token, id);
+      // Optionally update event tickets count locally (we can re-fetch event)
+      const updatedEvent = await api.getEvent(id);
+      setEventData(updatedEvent);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 5000);
-
     } catch (err) {
       alert(err.message);
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-[var(--bg-purple)] flex items-center justify-center">
-      <div className="text-white text-2xl animate-pulse">Loading event details...</div>
-    </div>
-  );
-
-  if (error) return (
-    <div className="min-h-screen bg-[var(--bg-purple)] flex items-center justify-center">
-      <div className="text-red-300 text-xl text-center p-8 bg-white/10 rounded-xl">
-        Error: {error}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-purple)] flex items-center justify-center">
+        <div className="text-white text-2xl animate-pulse">Loading event details...</div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-purple)] flex items-center justify-center">
+        <div className="text-red-300 text-xl text-center p-8 bg-white/10 rounded-xl">
+          Error: {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--bg-purple)] px-8">
-      <Navbar  />
-      
-      {/* Success Notification */}
+      <Navbar />
+
       {showSuccess && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50">
           <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-slide-down">
@@ -132,7 +97,7 @@ export const EventInfo = () => {
               <p className="font-bold">Ticket Reserved Successfully!</p>
               <p>Check your email for confirmation and ticket details</p>
             </div>
-            <button 
+            <button
               onClick={() => setShowSuccess(false)}
               className="ml-4 hover:text-green-200 transition-colors"
             >
@@ -165,12 +130,12 @@ export const EventInfo = () => {
                 onClick={handleRegister}
               >
                 <FaTicketAlt className="text-[#B39DDB]" />
-                {eventData.is_paid ? `BUY TICKET ($${eventData.ticket_price})` : 'GET  TICKET'}
+                {eventData.is_paid ? `BUY TICKET ($${eventData.ticket_price})` : 'GET TICKET'}
               </button>
               <p className="text-gray-400 text-sm text-center">
-                {eventData.is_paid 
+                {eventData.is_paid
                   ? 'Secure payment processing powered by Stripe'
-                  : 'You\'ll receive a confirmation email with your ticket'}
+                  : "You'll receive a confirmation email with your ticket"}
               </p>
             </div>
           </div>
@@ -217,7 +182,7 @@ export const EventInfo = () => {
                         month: 'long',
                         day: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                       })}
                     </p>
                   </div>
@@ -236,16 +201,12 @@ export const EventInfo = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-[var(--bg-purple)] border border-gray-600 rounded-xl p-6 shadow-lg">
                 <h3 className="text-xl font-bold text-white mb-3">Organized By</h3>
-                <p className="text-white">
-                  {eventData.organizer?.name || 'SAFEX'}
-                </p>
+                <p className="text-white">{eventData.organizer?.name || 'SAFEX'}</p>
               </div>
 
               <div className="bg-[var(--bg-purple)] border border-gray-600 rounded-xl p-6 shadow-lg">
                 <h3 className="text-xl font-bold text-white mb-3">Sponsored By</h3>
-                <p className="text-white">
-                  {eventData.sponsor || 'SAFEX'}
-                </p>
+                <p className="text-white">{eventData.sponsor || 'SAFEX'}</p>
               </div>
             </div>
           </div>
@@ -273,12 +234,13 @@ export const EventInfo = () => {
 
         <div className="text-center py-8 mt-12 border-t border-gray-600">
           <p className="text-gray-400">
-            <button 
+            <button
               onClick={() => navigate('/login')}
               className="underline hover:text-white transition-colors"
             >
               Sign in
-            </button> to join the conversation
+            </button>{' '}
+            to join the conversation
           </p>
         </div>
       </div>

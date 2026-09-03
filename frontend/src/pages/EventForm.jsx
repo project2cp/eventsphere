@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { FaCheck, FaCalendarAlt, FaTicketAlt, FaMapMarker, FaImage, FaInfoCircle, FaClock, FaAlignLeft } from 'react-icons/fa';
+import {
+  FaCheck,
+  FaCalendarAlt,
+  FaTicketAlt,
+  FaMapMarker,
+  FaImage,
+  FaInfoCircle,
+  FaClock,
+  FaAlignLeft,
+} from 'react-icons/fa';
 import { MdNavigateNext, MdNavigateBefore } from 'react-icons/md';
-import { Navbar } from '../layout/Navbar';
+import { Navbar } from '../components/layout/Navbar';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
+import api from '../api/client';
 
 const initialEventData = {
   title: '',
@@ -29,6 +39,7 @@ export const EventForm = () => {
   const [errors, setErrors] = useState({});
   const [authError, setAuthError] = useState(null);
 
+  // Check if user is an organizer
   useEffect(() => {
     const verifyOrganizerStatus = async () => {
       const token = localStorage.getItem('token');
@@ -38,23 +49,18 @@ export const EventForm = () => {
       }
 
       try {
-        const response = await fetch('/api/organizers/profile', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            navigate(`/organizer-form?redirect=${encodeURIComponent(location.pathname)}`, { 
-              replace: true,
-              state: { error: 'You need to be an organizer to create events' }
-            });
-          } else {
-            throw new Error('Failed to verify organizer status');
-          }
-        }
+        await api.getOrganizerProfile(token);
+        // Organizer confirmed – allow form
       } catch (error) {
-        console.error('Organizer verification error:', error);
-        setAuthError('Error verifying organizer status. Please try again.');
+        if (error.response?.status === 404) {
+          navigate(`/organizer-form?redirect=${encodeURIComponent(location.pathname)}`, {
+            replace: true,
+            state: { error: 'You need to be an organizer to create events' },
+          });
+        } else {
+          console.error('Organizer verification error:', error);
+          setAuthError('Error verifying organizer status. Please try again.');
+        }
       }
     };
 
@@ -69,14 +75,14 @@ export const EventForm = () => {
 
   const validateStep = (step) => {
     const newErrors = {};
-    
+
     if (step === 1) {
       if (!formData.title.trim()) newErrors.title = 'Event name is required';
       if (!formData.category) newErrors.category = 'Event type is required';
       if (!formData.date) newErrors.date = 'Date is required';
       if (!formData.time) newErrors.time = 'Time is required';
     }
-    
+
     if (step === 2) {
       if (!formData.description.trim()) newErrors.description = 'Description is required';
       if (!formData.location.trim()) newErrors.location = 'Location is required';
@@ -88,7 +94,7 @@ export const EventForm = () => {
         newErrors.ticketPrice = 'Ticket price must be a positive number if provided';
       }
     }
-    
+
     if (step === 3 && !formData.termsAccepted) {
       newErrors.termsAccepted = 'You must agree to the terms and conditions';
     }
@@ -97,24 +103,24 @@ export const EventForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => validateStep(currentStep) && setCurrentStep(prev => Math.min(prev + 1, 3));
-  const handlePrevious = () => setCurrentStep(prev => Math.max(prev - 1, 1));
+  const handleNext = () => validateStep(currentStep) && setCurrentStep((prev) => Math.min(prev + 1, 3));
+  const handlePrevious = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setErrors(prev => ({ ...prev, [name]: '' }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         eventImage: file,
-        eventImagePreview: URL.createObjectURL(file)
+        eventImagePreview: URL.createObjectURL(file),
       }));
-      setErrors(prev => ({ ...prev, eventImage: '' }));
+      setErrors((prev) => ({ ...prev, eventImage: '' }));
     }
   };
 
@@ -122,6 +128,7 @@ export const EventForm = () => {
     if (!validateStep(3)) return;
     setIsSubmitting(true);
 
+    const token = localStorage.getItem('token');
     const formDataToSend = new FormData();
     const combinedDateTime = `${formData.date}T${formData.time}:00`;
     formDataToSend.append('title', formData.title);
@@ -136,35 +143,15 @@ export const EventForm = () => {
       formDataToSend.append('ticket_price', formData.ticketPrice);
     }
 
-    console.log('Sending data:', Object.fromEntries(formDataToSend.entries()), { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-
     try {
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: formDataToSend,
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('Server response:', text);
-        const errorData = response.status === 422 ? await response.json() : { message: `HTTP error! status: ${response.status}, ${text}` };
-        throw new Error(errorData.message || 'Event creation failed');
-      }
-
-      const data = await response.json();
+      await api.createEvent(token, formDataToSend);
       setIsSubmitted(true);
-      console.log('Event created successfully:', data);
     } catch (error) {
-      setErrors({ submit: error.message });
-      console.error('Event creation error:', error);
+      setErrors({ submit: error.message || 'Event creation failed' });
     } finally {
       setIsSubmitting(false);
     }
   };
-
 
   if (authError) {
     return null;
@@ -178,7 +165,7 @@ export const EventForm = () => {
 
   return (
     <div className="min-h-screen bg-[var(--bg-purple)] font-sans py-8">
-      <Navbar  />
+      <Navbar />
 
       <div className="max-w-3xl mx-auto px-4 relative pt-16">
         <div className="text-center mb-8">
@@ -189,25 +176,51 @@ export const EventForm = () => {
         <div className="flex items-center justify-between mb-12">
           {steps.map((step, index) => (
             <div key={index} className="flex flex-col items-center flex-1">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center 
-                ${(currentStep > index + 1 || (index === 2 && isSubmitted)) ? 'bg-green-500' : currentStep === index + 1 ? 'bg-[#c4adf4]' : 'bg-gray-300'}
-                transition-colors duration-300`}>
-                {(currentStep > index + 1 || (index === 2 && isSubmitted)) ? <FaCheck className="text-white" /> : 
-                 React.cloneElement(step.icon, { className: 'text-white' })}
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center 
+                ${
+                  currentStep > index + 1 || (index === 2 && isSubmitted)
+                    ? 'bg-green-500'
+                    : currentStep === index + 1
+                    ? 'bg-[#c4adf4]'
+                    : 'bg-gray-300'
+                }
+                transition-colors duration-300`}
+              >
+                {currentStep > index + 1 || (index === 2 && isSubmitted) ? (
+                  <FaCheck className="text-white" />
+                ) : (
+                  React.cloneElement(step.icon, { className: 'text-white' })
+                )}
               </div>
-              <span className={`mt-2 text-sm ${(currentStep >= index + 1 || (index === 2 && isSubmitted)) ? 'text-white' : 'text-gray-400'}`}>
+              <span
+                className={`mt-2 text-sm ${
+                  currentStep >= index + 1 || (index === 2 && isSubmitted)
+                    ? 'text-white'
+                    : 'text-gray-400'
+                }`}
+              >
                 {step.title}
               </span>
               {index < steps.length - 1 && (
-                <div className={`flex-1 h-1 mt-6 ${(currentStep > index + 1 || (index === 1 && isSubmitted)) ? 'bg-green-500' : 'bg-gray-200'}`} />
+                <div
+                  className={`flex-1 h-1 mt-6 ${
+                    currentStep > index + 1 || (index === 1 && isSubmitted)
+                      ? 'bg-green-500'
+                      : 'bg-gray-200'
+                  }`}
+                />
               )}
             </div>
           ))}
         </div>
 
         <div className="relative">
-          <div className={`bg-white rounded-xl shadow-lg p-8 transition-opacity ${isSubmitted ? 'opacity-50 pointer-events-none' : ''}`}>
-            
+          <div
+            className={`bg-white rounded-xl shadow-lg p-8 transition-opacity ${
+              isSubmitted ? 'opacity-50 pointer-events-none' : ''
+            }`}
+          >
             {currentStep === 1 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-[#4a2c8a]">
@@ -233,9 +246,13 @@ export const EventForm = () => {
                       onChange={handleInputChange}
                       className="w-full p-3 border rounded-lg text-gray-700"
                     >
-                      <option value="" disabled>Select event type</option>
-                      {eventTypes.map(type => (
-                        <option key={type} value={type}>{type}</option>
+                      <option value="" disabled>
+                        Select event type
+                      </option>
+                      {eventTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
                       ))}
                     </select>
                     {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
@@ -318,7 +335,11 @@ export const EventForm = () => {
                     />
                   </div>
                   {formData.eventImagePreview && (
-                    <img src={formData.eventImagePreview} alt="Event preview" className="mt-4 w-48 h-32 object-cover rounded-lg" />
+                    <img
+                      src={formData.eventImagePreview}
+                      alt="Event preview"
+                      className="mt-4 w-48 h-32 object-cover rounded-lg"
+                    />
                   )}
                   {errors.eventImage && <p className="text-red-500 text-sm mt-1">{errors.eventImage}</p>}
                 </div>
@@ -326,7 +347,9 @@ export const EventForm = () => {
                   <label className="block text-sm font-medium mb-2">Ticket Options *</label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium mb-2">Ticket Price (Leave empty for free event)</label>
+                      <label className="block text-sm font-medium mb-2">
+                        Ticket Price (Leave empty for free event)
+                      </label>
                       <input
                         type="number"
                         name="ticketPrice"
@@ -335,7 +358,9 @@ export const EventForm = () => {
                         placeholder="Enter ticket price (optional)"
                         className="w-full p-3 border rounded-lg placeholder-gray-400"
                       />
-                      {errors.ticketPrice && <p className="text-red-500 text-sm mt-1">{errors.ticketPrice}</p>}
+                      {errors.ticketPrice && (
+                        <p className="text-red-500 text-sm mt-1">{errors.ticketPrice}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Ticket Limit *</label>
@@ -347,7 +372,9 @@ export const EventForm = () => {
                         placeholder="Enter ticket limit"
                         className="w-full p-3 border rounded-lg placeholder-gray-400"
                       />
-                      {errors.ticketLimit && <p className="text-red-500 text-sm mt-1">{errors.ticketLimit}</p>}
+                      {errors.ticketLimit && (
+                        <p className="text-red-500 text-sm mt-1">{errors.ticketLimit}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -366,7 +393,9 @@ export const EventForm = () => {
                       id="terms"
                       name="termsAccepted"
                       checked={formData.termsAccepted}
-                      onChange={(e) => setFormData(prev => ({ ...prev, termsAccepted: e.target.checked }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, termsAccepted: e.target.checked }))
+                      }
                       className="w-5 h-5 accent-[#4a2c8a]"
                       required
                     />
@@ -374,7 +403,9 @@ export const EventForm = () => {
                       I agree to the terms and conditions and confirm all event details are accurate *
                     </label>
                   </div>
-                  {errors.termsAccepted && <p className="text-red-500 text-sm">{errors.termsAccepted}</p>}
+                  {errors.termsAccepted && (
+                    <p className="text-red-500 text-sm">{errors.termsAccepted}</p>
+                  )}
                 </div>
               </div>
             )}
@@ -388,7 +419,7 @@ export const EventForm = () => {
               >
                 <MdNavigateBefore /> Previous
               </button>
-              
+
               {currentStep < 3 ? (
                 <button
                   type="button"
@@ -402,7 +433,11 @@ export const EventForm = () => {
                   type="button"
                   onClick={handleSubmit}
                   disabled={isSubmitting || !formData.termsAccepted}
-                  className={`bg-green-500 text-white px-6 py-2 rounded-lg transition-colors ${isSubmitting || !formData.termsAccepted ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-600'}`}
+                  className={`bg-green-500 text-white px-6 py-2 rounded-lg transition-colors ${
+                    isSubmitting || !formData.termsAccepted
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:bg-green-600'
+                  }`}
                 >
                   {isSubmitting ? 'Publishing Event...' : 'Publish Event'}
                 </button>

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import api from '../../api/client';
 
 export const EmailVerification = () => {
     const navigate = useNavigate();
@@ -12,19 +13,13 @@ export const EmailVerification = () => {
         const handleVerification = async () => {
             if (token) {
                 try {
-                    // Verify token validity before storing
-                    const testResponse = await fetch('/api/user', {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    });
-
-                    if (!testResponse.ok) throw new Error('Invalid token');
-
-                    localStorage.setItem('token', token);
-                    navigate('/profile');
+                    // Verify the token via mock
+                    await api.verifyEmail(token);
+                    // On success, redirect to login with success message
+                    navigate('/login?verification=success');
                 } catch (error) {
-                    navigate('/login?error=invalid_token');
+                    // Invalid token
+                    navigate('/login?verification_error=invalid_token');
                 }
             } else if (error) {
                 navigate(`/login?verification_error=${error}`);

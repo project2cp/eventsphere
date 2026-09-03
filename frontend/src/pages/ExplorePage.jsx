@@ -1,10 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Navbar } from '../layout/Navbar';
-import { EventCard } from '../ui/EventCard';
-import { Footer } from '../Home_section/Footer';
+import { Navbar } from '../components/layout/Navbar';
+import { EventCard } from '../components/Explore_section/EventCard';
+import { Footer } from '../components/Home_section/Footer';
 import { FaSearch, FaArrowLeft, FaArrowRight, FaSortAmountDown, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import api from '../api/client';
+
+import img1 from '../assets/ai.jpeg';
+import img3 from '../assets/marathon.png';
+import img4 from '../assets/medical.jpeg';
+import img5 from '../assets/hackthon.jpg';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -31,7 +37,22 @@ export const ExplorePage = () => {
   const dateRef = useRef(null);
   const locationRef = useRef(null);
 
-  // Unique rotating titles
+  const imageMap = {
+    'ai.jpeg': img1,
+    'marathon.png': img3,
+    'medical.jpeg': img4,
+    'hackthon.jpg': img5
+  };
+
+  const categories = ['All', 'Conference', 'Concert', 'Workshop', 'Exhibition', 'Networking', 'Science', 'Sports', 'Medical'];
+  const sortOptions = [
+    { value: 'popularity', label: 'Popularity' },
+    { value: 'date', label: 'Date' },
+    { value: 'ticket_price', label: 'Price' }
+  ];
+
+  const elementHeight = "h-12";
+
   const titles = [
     "Unlock Extraordinary Experiences!",
     "Your Next Memory Starts Here!",
@@ -40,39 +61,27 @@ export const ExplorePage = () => {
     "Adventure Awaits Around the Corner!"
   ];
 
-  const categories = ['All', 'Conference', 'Concert', 'Workshop', 'Exhibition', 'Networking'];
-  const sortOptions = [
-    { value: 'popularity', label: 'Popularity' },
-    { value: 'date', label: 'Date' },
-    { value: 'ticket_price', label: 'Price' }
-  ];
-
-  // Element height constant
-  const elementHeight = "h-12";
-
-  // Fetch events function
+  // Fetch events
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const queryParams = new URLSearchParams({
+      const params = {
         page: filters.page,
         category: filters.category,
         location: filters.location,
         date: filters.date,
         keyword: filters.keyword,
         sort_by: filters.sort_by
-      }).toString();
-
-      const response = await fetch(`/api/events?${queryParams}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch events');
+      };
+      const data = await api.getEvents(params);
       
-      const data = await response.json();
-      setEvents(data.data);
+      // ✅ REPLACE FILENAME WITH ACTUAL IMPORTED IMAGE
+      const eventsWithImages = data.data.map(event => ({
+        ...event,
+        image: imageMap[event.image] || img1, // fallback to img1 if unknown
+      }));
+      
+      setEvents(eventsWithImages);
       setPagination({
         current_page: data.current_page,
         last_page: data.last_page,
@@ -89,13 +98,12 @@ export const ExplorePage = () => {
     fetchEvents();
   }, [filters]);
 
-  // Title animation effect
+  // Title animation
   useEffect(() => {
     const titleElements = titleContainerRef.current?.children;
     if (!titleElements) return;
 
     const tl = gsap.timeline({ repeat: -1 });
-    
     Array.from(titleElements).forEach((title, index) => {
       tl.to(title, {
         opacity: 1,
@@ -116,9 +124,14 @@ export const ExplorePage = () => {
     return () => tl.kill();
   }, []);
 
-  // Event card animation effect
+  // GSAP animation for event cards
   useEffect(() => {
-    gsap.from(".event-card", {
+    if (loading || events.length === 0) return;
+
+    const cards = document.querySelectorAll(".event-card");
+    if (cards.length === 0) return;
+
+    gsap.from(cards, {
       opacity: 0,
       y: 50,
       duration: 0.8,
@@ -132,9 +145,8 @@ export const ExplorePage = () => {
     });
 
     return () => ScrollTrigger.getAll().forEach(t => t.kill());
-  }, [events]);
+  }, [events, loading]);
 
-  // Filter change handler
   const handleFilterChange = (name, value) => {
     setFilters(prev => ({
       ...prev,
@@ -143,21 +155,18 @@ export const ExplorePage = () => {
     }));
   };
 
-  // Pagination handler
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > pagination.last_page) return;
     setFilters(prev => ({ ...prev, page: newPage }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Date picker handler
   const handleDateClick = () => {
     if (dateRef.current) {
       dateRef.current.showPicker();
     }
   };
 
-  // Location input handler
   const handleLocationClick = () => {
     setShowLocationInput(true);
     if (locationRef.current) {
@@ -167,9 +176,9 @@ export const ExplorePage = () => {
 
   return (
     <div className='min-h-screen bg-[var(--bg-purple)] text-white font-sans'>
-      <Navbar  />
+      <Navbar />
 
-      {/* Animated Header Section */}
+      {/* Animated Header */}
       <div className='pt-16'>
         <div className="w-4/5 mx-auto mt-8 p-12 bg-[#dbcef5] rounded-lg shadow-lg relative min-h-[140px] flex items-center justify-center">
           <div ref={titleContainerRef} className="relative w-full h-full">
@@ -190,11 +199,10 @@ export const ExplorePage = () => {
         </div>
       </div>
 
-      {/* Search and Filters Section */}
+      {/* Search and Filters */}
       <div className="w-4/5 mx-auto mt-8 space-y-4">
         <div className="flex flex-nowrap gap-3 items-center">
-          {/* Search Input */}
-          <div className={`relative flex-2 ${elementHeight}`}>
+          <div className={`relative flex-1 ${elementHeight}`}>
             <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input 
               type="text" 
@@ -205,7 +213,6 @@ export const ExplorePage = () => {
             />
           </div>
 
-          {/* Category Filter */}
           <select
             className={`flex-shrink-0 min-w-[120px] bg-white text-[var(--bg-purple)] px-4 ${elementHeight} rounded-full text-sm border-none focus:outline-none cursor-pointer`}
             value={filters.category}
@@ -217,7 +224,6 @@ export const ExplorePage = () => {
             ))}
           </select>
 
-          {/* Sort By Filter */}
           <div className={`relative ${elementHeight} min-w-[120px] bg-white rounded-full`}>
             <FaSortAmountDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <select
@@ -231,11 +237,10 @@ export const ExplorePage = () => {
             </select>
           </div>
 
-          {/* Date Filter */}
           <div className={`relative ${elementHeight} w-10`}>
             <button
               onClick={handleDateClick}
-              className={`w-full h-full flex items-center justify-center p-1 rounded-full bg-white text-gray-400 hover:bg-gray-50 transition-colors`}
+              className="w-full h-full flex items-center justify-center p-1 rounded-full bg-white text-gray-400 hover:bg-gray-50 transition-colors"
             >
               <FaCalendarAlt className="text-lg" />
             </button>
@@ -248,7 +253,6 @@ export const ExplorePage = () => {
             />
           </div>
 
-          {/* Location Filter */}
           <div className={`relative ${elementHeight} w-10`}>
             {showLocationInput ? (
               <div className="absolute left-0 bottom-full mb-2">
@@ -266,7 +270,7 @@ export const ExplorePage = () => {
             ) : null}
             <button
               onClick={handleLocationClick}
-              className={`w-full h-full flex items-center justify-center p-1 rounded-full bg-white text-gray-400 hover:bg-gray-50 transition-colors`}
+              className="w-full h-full flex items-center justify-center p-1 rounded-full bg-white text-gray-400 hover:bg-gray-50 transition-colors"
             >
               <FaMapMarkerAlt className="text-lg" />
             </button>
@@ -274,7 +278,7 @@ export const ExplorePage = () => {
         </div>
       </div>
 
-      {/* Events Grid Section */}
+      {/* Events Grid */}
       <div className="w-4/5 mx-auto mt-12 events-container">
         {loading ? (
           <div className="text-center py-12 text-xl">Loading events...</div>
@@ -287,19 +291,17 @@ export const ExplorePage = () => {
             <div className="events-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {events.map(event => (
                 <div key={event.id} className="event-card">
-                  <EventCard 
+                  <EventCard
                     event={{
                       ...event,
-                      date: new Date(event.date).toLocaleDateString(),
-                      price: event.is_paid ? `$${event.ticket_price}` : 'Free',
-                      img: event.image ? `/storage/${event.image}` : 'default-image.jpg'
+                      image: event.image, 
                     }}
                   />
                 </div>
               ))}
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination */}
             <div className="flex justify-center items-center mt-8 pb-8">
               <button
                 onClick={() => handlePageChange(pagination.current_page - 1)}
@@ -333,7 +335,7 @@ export const ExplorePage = () => {
         )}
       </div>
       
-      <Footer/>
+      <Footer />
     </div>
   );
 };

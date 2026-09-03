@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate, useLocation } from "react-router-dom";
-import { Navbar } from "../layout/Navbar";
-import { Sidebar } from "../layout/Sidebar";
+import { Navbar } from "../components/layout/Navbar";
+import { Sidebar } from "../components/layout/Sidebar";
 import { FaCheck, FaTimes, FaEdit } from "react-icons/fa";
+import api from "../api/client";
 
 export const Profile = () => {
   const [userData, setUserData] = useState({
@@ -14,7 +15,7 @@ export const Profile = () => {
     profile_photo: null,
     notificationEnabled: true,
     payementMethode: [],
-    is_organizer: false, // Organizer status
+    is_organizer: false,
   });
   const [isEditingPersonalInfo, setIsEditingPersonalInfo] = useState(false);
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -31,18 +32,14 @@ export const Profile = () => {
     const verification = queryParams.get("verification");
     const errorType = queryParams.get("verification_error");
 
-    // Clean URL parameters
     if (verification || errorType) {
       window.history.replaceState({}, document.title, "/profile");
     }
 
-    // Handle verification without token
     if (verification === "success") {
       setVerificationStatus("success");
       if (!localStorage.getItem("token")) {
-        const timer = setTimeout(() => {
-          navigate("/login");
-        }, 5000);
+        const timer = setTimeout(() => navigate("/login"), 5000);
         return () => clearTimeout(timer);
       }
     } else if (errorType) {
@@ -54,9 +51,7 @@ export const Profile = () => {
           : "Verification error occurred"
       );
       if (!localStorage.getItem("token")) {
-        const timer = setTimeout(() => {
-          navigate("/login");
-        }, 5000);
+        const timer = setTimeout(() => navigate("/login"), 5000);
         return () => clearTimeout(timer);
       }
     }
@@ -69,25 +64,7 @@ export const Profile = () => {
 
     const fetchProfile = async () => {
       try {
-        const response = await fetch("/api/profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.status === 401) {
-          setAuthError("Session expired. Please log in again.");
-          localStorage.removeItem("token");
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch profile");
-        }
-
-        const data = await response.json();
-        // Normalize the profile_photo path
+        const data = await api.getProfile(token);
         const profilePhotoPath = data.profile_photo
           ? data.profile_photo.startsWith("storage/")
             ? data.profile_photo
@@ -102,15 +79,19 @@ export const Profile = () => {
           profile_photo: profilePhotoPath ? `${API_BASE_URL}/${profilePhotoPath}` : null,
           notificationEnabled: data.notificationEnabled ?? true,
           payementMethode: data.payementMethode || [],
-          is_organizer: data.is_organizer || false, // Add organizer status from API
+          is_organizer: data.is_organizer || false,
         });
 
-        // Log the constructed image URL for debugging
         if (profilePhotoPath) {
           console.log("Profile Image URL:", `${API_BASE_URL}/${profilePhotoPath}`);
         }
       } catch (error) {
-        setAuthError(error.message || "An error occurred while fetching profile.");
+        if (error.message === "Unauthorized") {
+          setAuthError("Session expired. Please log in again.");
+          localStorage.removeItem("token");
+        } else {
+          setAuthError(error.message || "An error occurred while fetching profile.");
+        }
       } finally {
         setIsLoading(false);
       }
@@ -144,28 +125,10 @@ export const Profile = () => {
 
     const formData = new FormData();
     formData.append("profile_photo", file);
-    formData.append("_method", "PUT"); // Simulate PUT request
+    formData.append("_method", "PUT");
 
     try {
-      const response = await fetch("/api/profile", {
-        method: "POST", // Use POST to match Postman test
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (response.status === 401) {
-        setAuthError("Session expired. Please log in again.");
-        localStorage.removeItem("token");
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Failed to upload image");
-      }
-
-      const data = await response.json();
+      const data = await api.uploadPhoto(token, formData);
       const profilePhotoPath = data.user.profile_photo
         ? data.user.profile_photo.startsWith("storage/")
           ? data.user.profile_photo
@@ -177,7 +140,6 @@ export const Profile = () => {
         profile_photo: profilePhotoPath ? `${API_BASE_URL}/${profilePhotoPath}` : null,
       }));
 
-      // Log the updated image URL for debugging
       if (profilePhotoPath) {
         console.log("Updated Profile Image URL:", `${API_BASE_URL}/${profilePhotoPath}`);
       }
@@ -196,30 +158,11 @@ export const Profile = () => {
     }
 
     try {
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: userData.name,
-          phone_number: userData.phone_number,
-          location: userData.location,
-        }),
+      const data = await api.updateProfile(token, {
+        name: userData.name,
+        phone_number: userData.phone_number,
+        location: userData.location,
       });
-
-      if (response.status === 401) {
-        setAuthError("Session expired. Please log in again.");
-        localStorage.removeItem("token");
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Failed to update profile");
-      }
-
-      const data = await response.json();
       setUserData((prev) => ({
         ...prev,
         name: data.user.name,
@@ -240,26 +183,7 @@ export const Profile = () => {
     }
 
     try {
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ bio: userData.bio }),
-      });
-
-      if (response.status === 401) {
-        setAuthError("Session expired. Please log in again.");
-        localStorage.removeItem("token");
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Failed to update bio");
-      }
-
-      const data = await response.json();
+      const data = await api.updateProfile(token, { bio: userData.bio });
       setUserData((prev) => ({
         ...prev,
         bio: data.user.bio,
@@ -316,14 +240,12 @@ export const Profile = () => {
         default:
           errorMessage = "Verification error occurred";
       }
-
       return (
         <div className="fixed top-20 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg">
           {errorMessage}
         </div>
       );
     }
-
     return null;
   };
 
@@ -557,8 +479,8 @@ export const Profile = () => {
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     console.error("Failed to load image:", userData.profile_photo);
-                    e.target.style.display = "none"; // Hide the broken image
-                    e.target.nextSibling.style.display = "flex"; // Show the fallback
+                    e.target.style.display = "none";
+                    e.target.nextSibling.style.display = "flex";
                   }}
                 />
               ) : null}
@@ -619,7 +541,7 @@ export const Profile = () => {
                 </li>
               ))}
             </ul>
-            {!userData.is_organizer && ( // Conditionally render the "Be an organizer" button
+            {!userData.is_organizer && (
               <a href="/organizer" className="block mt-[50px] w-full">
                 <button className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600 cursor-pointer w-full">
                   Be an organizer

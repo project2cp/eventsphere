@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { FaMapMarkerAlt, FaCheckCircle, FaTimesCircle, FaCalendarAlt } from 'react-icons/fa';
-import { Navbar } from "../layout/Navbar";
+import { Navbar } from "../components/layout/Navbar";
 import { useNavigate } from 'react-router-dom';
+import api from '../api/client';
 
 export const MyTickets = () => {
   const [tickets, setTickets] = useState([]);
@@ -10,27 +11,17 @@ export const MyTickets = () => {
   const navigate = useNavigate();
 
   const token = localStorage.getItem('token');
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Accept': 'application/json'
-  };
 
   const fetchTickets = async () => {
     try {
-      const response = await fetch('/api/tickets', { headers });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('token');
-          navigate('/login');
-          return;
-        }
-        throw new Error('Failed to fetch tickets');
-      }
-
-      const data = await response.json();
+      const data = await api.getTickets(token);
       setTickets(data.tickets);
     } catch (err) {
+      if (err.message === 'Unauthorized') {
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
       setError(err.message);
     } finally {
       setLoading(false);
@@ -40,10 +31,9 @@ export const MyTickets = () => {
   useEffect(() => {
     fetchTickets();
 
-    // Set up polling every 10 seconds to check for updates
+    // Set up polling every 10 seconds to check for updates (optional)
     const intervalId = setInterval(fetchTickets, 10000);
 
-    // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
   }, [navigate]);
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import validator from "validator";
-import { useNavigate } from "react-router-dom";
 import { FaFacebookF, FaGoogle, FaApple } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import api from "../../api/client";
 
 export const Signup = () => {
   const navigate = useNavigate();
@@ -104,33 +104,21 @@ export const Signup = () => {
           password_confirmation: confirmPassword,
         };
 
-        const response = await axios.post(
-          "/api/register",
-          payload,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "application/json",
-            },
-          }
-        );
-
-        if (response.status === 201) {
-          navigate("/verify-email", { 
-            state: { email: email.trim() } 
-          });
-        }
+        await api.register(payload);
+        // Success: navigate to verification prompt
+        navigate("/verify-email", { 
+          state: { email: email.trim() } 
+        });
       } catch (error) {
+        // Handle errors from mock (which may have a response property)
         if (error.response?.data?.errors) {
           const errors = error.response.data.errors;
           if (errors.email) setEmailError(errors.email.join(' '));
           if (errors.password) setPasswordError(errors.password.join(' '));
           if (errors.name) setSignupError(errors.name.join(' '));
+        } else {
+          setSignupError(error.message || 'An error occurred. Please try again.');
         }
-        setSignupError(
-          error.response?.data?.message || 
-          'An error occurred. Please try again.'
-        );
       } finally {
         setIsLoading(false);
       }
@@ -257,7 +245,6 @@ export const Signup = () => {
             }`}
           >
             {isLoading ? 'Creating Account...' : 'Sign Up'}
-            
           </button>
 
           <div className="relative my-4 flex items-center">
