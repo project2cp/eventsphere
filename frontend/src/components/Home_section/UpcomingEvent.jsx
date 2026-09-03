@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { MdArrowBackIos, MdArrowForwardIos } from "react-icons/md";
 import { FaShareAlt, FaEllipsisH } from "react-icons/fa";
-import { HeartIcon, ShareMenu, MoreOptionsMenu } from '../CardFeatures';
+import { HeartIcon, ShareMenu, MoreOptionsMenu } from '../cardFeatures';
 import { Alert } from '../layout/Alert';
 
 // Import images
