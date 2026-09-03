@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
-    base: '/eventsphere/', 
+    base: '/frontend/', 
     assetsInclude: ['**/*.png', '**/*.jpg', '**/*.webp'],
     define: {
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(API_BASE_URL),
