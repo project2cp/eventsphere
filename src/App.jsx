@@ -1,7 +1,7 @@
 // src/App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { seedData } from "./services/seedData"; 
+import { seedData } from "./services/seedData";
 
 // Pages
 import { Home } from "./pages/Home";
@@ -14,7 +14,7 @@ import { Profile } from "./pages/Profile";
 import { EventInfo } from "./pages/EventInfo";
 import { ExplorePage } from "./pages/ExplorePage";
 import { OrganizerForm } from "./pages/OrganizerForm";
-import { EventForm } from "./pages/EventForm"; 
+import { EventForm } from "./pages/EventForm";
 import { Dashboard } from "./pages/Dashboard";
 import { MyTickets } from "./pages/MyTickets";
 
@@ -23,7 +23,7 @@ seedData();
 
 function App() {
   return (
-    <Router>
+    <Router basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
