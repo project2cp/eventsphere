@@ -1,7 +1,7 @@
 // src/App.js
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { seedData } from "../src/services/seedData"; 
+import { seedData } from "./services/seedData"; 
 
 // Pages
 import { Home } from "./pages/Home";

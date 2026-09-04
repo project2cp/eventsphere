@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig(({ mode }) => {
-  // Load env file based on mode (development/production)
   const env = loadEnv(mode, process.cwd(), '')
   
   const API_BASE_URL = env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -11,6 +10,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    base: '/eventsphere/',   
     assetsInclude: ['**/*.png', '**/*.jpg', '**/*.webp'],
     define: {
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(API_BASE_URL),
