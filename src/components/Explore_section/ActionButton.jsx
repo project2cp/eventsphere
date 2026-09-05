@@ -1,8 +1,9 @@
 import React from 'react';
 
-export const ActionButton = ({ text, primary = false }) => {
+export const ActionButton = ({ text, primary = false, onClick }) => {
     return (
       <button
+        onClick={onClick}
         className={`
           px-4 py-2 rounded-md text-sm font-medium transition-colors
           ${primary 
@@ -13,4 +14,4 @@ export const ActionButton = ({ text, primary = false }) => {
         {text}
       </button>
     );
-  };
+};

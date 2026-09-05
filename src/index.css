@@ -1,101 +1,151 @@
 @import "tailwindcss";
 
-/* src/index.css */
 :root {
-    --bg-purple: #1D022C; 
+    --bg-purple: #1D022C;
     --bg-btn :#6b28b2;
     --primary-purple: #B39DDB;
     --verse-white: #FFFFFF;
 }
-body{
+
+body {
     font-family: "Roboto", serif;
 }
+
+/* Responsive text utilities */
+@layer utilities {
+    .text-responsive-hero {
+        @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl;
+    }
+    .text-responsive-sub {
+        @apply text-base sm:text-lg md:text-xl lg:text-2xl;
+    }
+    .text-responsive-title {
+        @apply text-2xl sm:text-3xl md:text-4xl;
+    }
+    .text-responsive-card {
+        @apply text-sm sm:text-base;
+    }
+}
+
+/* Input autofill fix */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-text-fill-color: white !important;
-  transition: background-color 5000s ease-in-out 0s;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
 }
 
-
+/* Navbar underline effect */
 li a.underline-effect {
     @apply relative hover:after:w-full after:absolute 
     after:left-0 after:bottom-[-2px] after:h-[2px] 
     after:bg-white after:w-0 after:transition-all after:duration-300 pb-1;
 }
-.btn-effect{
-    @apply border-1 p-1.5 rounded-md hover:text-[var(--primary-purple)]
+
+.btn-effect {
+    @apply border-1 p-1.5 rounded-md hover:text-[var(--primary-purple)];
 }
+
 .diamond {
     clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
 }
+
 /* Hide scrollbar */
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
-  }
-  
-  .scrollbar-hide {
+}
+.scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
-  }
-/* Add to your global CSS */
-html.lenis {
-  height: auto;
 }
 
-.lenis.lenis-smooth {
-  scroll-behavior: auto;
-}
+html.lenis { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
 
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
-/* For black background with opacity 52%  */
+/* Black background with opacity 52% */
 .bg-black-52 {
-  background-color: rgba(0, 0, 0, 0.52);
+    background-color: rgba(0, 0, 0, 0.52);
 }
 
-
-/* For logo in the footer */
-
+/* Footer logo animation */
 @keyframes spin-3d {
-  from {
-    transform: rotateY(0deg);
-  }
-  to {
-    transform: rotateY(360deg);
-  }
+    from { transform: rotateY(0deg); }
+    to { transform: rotateY(360deg); }
 }
-
 .animate-spin-3d {
-  animation: spin-3d 6s linear infinite;
+    animation: spin-3d 6s linear infinite;
 }
-
-.perspective-1000 {
-  perspective: 1000px;
-}
+.perspective-1000 { perspective: 1000px; }
 
 .group:hover .group-hover\:rotate-y-180 {
-  transform: rotateY(180deg);
+    transform: rotateY(180deg);
 }
-
 .group:hover .group-hover\:[transform-style\:preserve-3d] {
-  transform-style: preserve-3d;
+    transform-style: preserve-3d;
 }
 
+/* Background images */
 .footer-bg {
-  background-image: url("./assets/footer_bg.png"); /*  Correct path */
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;  /* Prevent repeat */
+    background-image: url("./assets/footer_bg.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
-.login,.signup {
-  background-image: url("./assets/sign-bg.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;  /* Prevent repeat */
+.login, .signup {
+    background-image: url("./assets/sign-bg.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 .bg-purple-70 {
-  background-color: rgba(29, 2, 44, 0.52);
+    background-color: rgba(29, 2, 44, 0.52);
+}
+
+/* Responsive padding utilities */
+@layer utilities {
+    .section-padding {
+        @apply px-4 sm:px-6 md:px-8 lg:px-16;
+    }
+    .container-padding {
+        @apply px-4 sm:px-6 md:px-8;
+    }
+}
+
+/* Mobile menu transition */
+.mobile-menu-enter {
+  transform: translateX(100%);
+}
+.mobile-menu-enter-active {
+  transform: translateX(0);
+  transition: transform 300ms ease-in-out;
+}
+.mobile-menu-exit {
+  transform: translateX(0);
+}
+.mobile-menu-exit-active {
+  transform: translateX(100%);
+  transition: transform 300ms ease-in-out;
+}
+
+/* Sidebar mobile styles */
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Navbar responsive adjustments */
+@media (max-width: 640px) {
+  nav .btn-effect {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* Mobile-friendly hero */
+@media (max-width: 640px) {
+    .hero-text-overlay {
+        background: linear-gradient(to top, rgba(29, 2, 44, 0.8), transparent);
+    }
 }

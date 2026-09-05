@@ -1,11 +1,15 @@
+// src/pages/ExplorePage.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from '../components/layout/Navbar';
 import { EventCard } from '../components/Explore_section/EventCard';
 import { Footer } from '../components/Home_section/Footer';
-import { FaSearch, FaArrowLeft, FaArrowRight, FaSortAmountDown, FaCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import api from '../api/client';
+import { SectionHeader } from '../components/Explore_section/SectionHeader';
+import { ActionButton } from '../components/Explore_section/ActionButton';
+import { SearchFilterBar } from '../components/Explore_section/SearchFilterBar';
 
 import img1 from '../assets/ai.jpeg';
 import img3 from '../assets/marathon.png';
@@ -36,6 +40,7 @@ export const ExplorePage = () => {
   const titleContainerRef = useRef(null);
   const dateRef = useRef(null);
   const locationRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const imageMap = {
     'ai.jpeg': img1,
@@ -44,14 +49,12 @@ export const ExplorePage = () => {
     'hackthon.jpg': img5
   };
 
-  const categories = ['All', 'Conference', 'Concert', 'Workshop', 'Exhibition', 'Networking', 'Science', 'Sports', 'Medical'];
+  const categories = ['Conference', 'Concert', 'Workshop', 'Exhibition', 'Networking', 'Science', 'Sports', 'Medical'];
   const sortOptions = [
     { value: 'popularity', label: 'Popularity' },
     { value: 'date', label: 'Date' },
     { value: 'ticket_price', label: 'Price' }
   ];
-
-  const elementHeight = "h-12";
 
   const titles = [
     "Unlock Extraordinary Experiences!",
@@ -75,10 +78,9 @@ export const ExplorePage = () => {
       };
       const data = await api.getEvents(params);
       
-      // ✅ REPLACE FILENAME WITH ACTUAL IMPORTED IMAGE
       const eventsWithImages = data.data.map(event => ({
         ...event,
-        image: imageMap[event.image] || img1, // fallback to img1 if unknown
+        image: imageMap[event.image] || img1,
       }));
       
       setEvents(eventsWithImages);
@@ -174,6 +176,19 @@ export const ExplorePage = () => {
     }
   };
 
+  const toggleExpand = () => setIsExpanded(!isExpanded);
+
+  const handleClearFilters = () => {
+    setFilters({
+      category: '',
+      location: '',
+      date: '',
+      keyword: '',
+      sort_by: 'popularity',
+      page: 1
+    });
+  };
+
   return (
     <div className='min-h-screen bg-[var(--bg-purple)] text-white font-sans'>
       <Navbar />
@@ -199,138 +214,106 @@ export const ExplorePage = () => {
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="w-4/5 mx-auto mt-8 space-y-4">
-        <div className="flex flex-nowrap gap-3 items-center">
-          <div className={`relative flex-1 ${elementHeight}`}>
-            <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search events..." 
-              className={`w-full pl-12 pr-6 ${elementHeight} rounded-full bg-white text-[var(--bg-purple)] text-sm border-none focus:outline-none placeholder-gray-400`}
-              value={filters.keyword}
-              onChange={(e) => handleFilterChange('keyword', e.target.value)}
-            />
-          </div>
+      {/* Search & Filter Bar */}
+      <div className="w-4/5 mx-auto mt-8">
+        <SearchFilterBar
+          searchQuery={filters.keyword}
+          onSearchChange={(value) => handleFilterChange('keyword', value)}
+          selectedCategory={filters.category}
+          onCategoryChange={(value) => handleFilterChange('category', value)}
+          categories={categories}
+          sortBy={filters.sort_by}
+          onSortChange={(value) => handleFilterChange('sort_by', value)}
+          sortOptions={sortOptions}
+          onDateClick={handleDateClick}
+          onLocationClick={handleLocationClick}
+          showLocationInput={showLocationInput}
+          locationRef={locationRef}
+          locationValue={filters.location}
+          onLocationChange={(value) => handleFilterChange('location', value)}
+          setShowLocationInput={setShowLocationInput}
+        />
+        
+        {/* Hidden date input */}
+        <input
+          type="date"
+          ref={dateRef}
+          className="hidden"
+          value={filters.date}
+          onChange={(e) => handleFilterChange('date', e.target.value)}
+        />
 
-          <select
-            className={`flex-shrink-0 min-w-[120px] bg-white text-[var(--bg-purple)] px-4 ${elementHeight} rounded-full text-sm border-none focus:outline-none cursor-pointer`}
-            value={filters.category}
-            onChange={(e) => handleFilterChange('category', e.target.value)}
-          >
-            <option value="">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-
-          <div className={`relative ${elementHeight} min-w-[120px] bg-white rounded-full`}>
-            <FaSortAmountDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <select
-              className={`w-full pl-10 pr-4 ${elementHeight} bg-transparent rounded-full text-sm text-[var(--bg-purple)] border-none focus:outline-none cursor-pointer`}
-              value={filters.sort_by}
-              onChange={(e) => handleFilterChange('sort_by', e.target.value)}
-            >
-              {sortOptions.map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className={`relative ${elementHeight} w-10`}>
-            <button
-              onClick={handleDateClick}
-              className="w-full h-full flex items-center justify-center p-1 rounded-full bg-white text-gray-400 hover:bg-gray-50 transition-colors"
-            >
-              <FaCalendarAlt className="text-lg" />
-            </button>
-            <input
-              type="date"
-              ref={dateRef}
-              className="hidden"
-              value={filters.date}
-              onChange={(e) => handleFilterChange('date', e.target.value)}
-            />
-          </div>
-
-          <div className={`relative ${elementHeight} w-10`}>
-            {showLocationInput ? (
-              <div className="absolute left-0 bottom-full mb-2">
-                <input
-                  type="text"
-                  ref={locationRef}
-                  placeholder="Location"
-                  className="w-48 pl-8 pr-4 py-3 rounded-full bg-white text-[var(--bg-purple)] text-sm border-none focus:outline-none shadow-lg"
-                  value={filters.location}
-                  onChange={(e) => handleFilterChange('location', e.target.value)}
-                  onBlur={() => setShowLocationInput(false)}
-                />
-                <FaMapMarkerAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              </div>
-            ) : null}
-            <button
-              onClick={handleLocationClick}
-              className="w-full h-full flex items-center justify-center p-1 rounded-full bg-white text-gray-400 hover:bg-gray-50 transition-colors"
-            >
-              <FaMapMarkerAlt className="text-lg" />
-            </button>
-          </div>
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3 mt-4">
+          <ActionButton text="Clear filters" primary={false} onClick={handleClearFilters} />
         </div>
       </div>
 
       {/* Events Grid */}
       <div className="w-4/5 mx-auto mt-12 events-container">
-        {loading ? (
-          <div className="text-center py-12 text-xl">Loading events...</div>
-        ) : error ? (
-          <div className="text-center py-12 text-xl text-red-300">{error}</div>
-        ) : events.length === 0 ? (
-          <div className="text-center py-12 text-xl">No events found matching your criteria</div>
-        ) : (
+        <SectionHeader 
+          title={`Events (${pagination.total})`}
+          expandable={true}
+          expanded={isExpanded}
+          onToggle={toggleExpand}
+          frameNumber={`${pagination.current_page} of ${pagination.last_page}`}
+        />
+
+        {isExpanded && (
           <>
-            <div className="events-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map(event => (
-                <div key={event.id} className="event-card">
-                  <EventCard
-                    event={{
-                      ...event,
-                      image: event.image, 
-                    }}
-                  />
+            {loading ? (
+              <div className="text-center py-12 text-xl">Loading events...</div>
+            ) : error ? (
+              <div className="text-center py-12 text-xl text-red-300">{error}</div>
+            ) : events.length === 0 ? (
+              <div className="text-center py-12 text-xl">No events found matching your criteria</div>
+            ) : (
+              <>
+                <div className="events-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                  {events.map(event => (
+                    <div key={event.id} className="event-card">
+                      <EventCard
+                        event={{
+                          ...event,
+                          image: event.image,
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            {/* Pagination */}
-            <div className="flex justify-center items-center mt-8 pb-8">
-              <button
-                onClick={() => handlePageChange(pagination.current_page - 1)}
-                disabled={pagination.current_page === 1}
-                className={`px-4 py-2 mx-2 rounded ${
-                  pagination.current_page === 1 
-                    ? 'bg-gray-300 cursor-not-allowed' 
-                    : 'bg-white text-[var(--bg-purple)] hover:bg-gray-100'
-                }`}
-              >
-                <FaArrowLeft />
-              </button>
-              
-              <span className="mx-4">
-                Page {pagination.current_page} of {pagination.last_page}
-              </span>
+                {/* Pagination */}
+                <div className="flex justify-center items-center mt-8 pb-8">
+                  <button
+                    onClick={() => handlePageChange(pagination.current_page - 1)}
+                    disabled={pagination.current_page === 1}
+                    className={`px-4 py-2 mx-2 rounded ${
+                      pagination.current_page === 1 
+                        ? 'bg-gray-300 cursor-not-allowed' 
+                        : 'bg-white text-[var(--bg-purple)] hover:bg-gray-100'
+                    }`}
+                  >
+                    <FaArrowLeft />
+                  </button>
+                  
+                  <span className="mx-4">
+                    Page {pagination.current_page} of {pagination.last_page}
+                  </span>
 
-              <button
-                onClick={() => handlePageChange(pagination.current_page + 1)}
-                disabled={pagination.current_page === pagination.last_page}
-                className={`px-4 py-2 mx-2 rounded ${
-                  pagination.current_page === pagination.last_page
-                    ? 'bg-gray-300 cursor-not-allowed' 
-                    : 'bg-white text-[var(--bg-purple)] hover:bg-gray-100'
-                }`}
-              >
-                <FaArrowRight />
-              </button>
-            </div>
+                  <button
+                    onClick={() => handlePageChange(pagination.current_page + 1)}
+                    disabled={pagination.current_page === pagination.last_page}
+                    className={`px-4 py-2 mx-2 rounded ${
+                      pagination.current_page === pagination.last_page
+                        ? 'bg-gray-300 cursor-not-allowed' 
+                        : 'bg-white text-[var(--bg-purple)] hover:bg-gray-100'
+                    }`}
+                  >
+                    <FaArrowRight />
+                  </button>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

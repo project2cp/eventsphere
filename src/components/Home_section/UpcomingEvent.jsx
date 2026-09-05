@@ -4,7 +4,6 @@ import { FaShareAlt, FaEllipsisH } from "react-icons/fa";
 import { HeartIcon, ShareMenu, MoreOptionsMenu } from '../cardFeatures';
 import { Alert } from '../layout/Alert';
 
-// Import images
 import img1 from '../../assets/ai.jpeg';
 import img3 from '../../assets/marathon.png';
 import img4 from '../../assets/medical.jpeg';
@@ -13,38 +12,38 @@ const upcomingEvents = [
     {
         id: 1,
         image: img1,
-        title: 'Innovating with DZ-Bot: Algeria’s First AI-Powered Robot for Healthcare and Education',
-        subtitle: 'Be part of the Algiers TechXpo 2025 and experience DZ-Bot, the revolutionary robot created by Algerian engineers. Fluent in Algerian Arabic and Tamazight, DZ-Bot is here to redefine healthcare and education.',
+        title: 'Innovating with DZ-Bot: Algeria\'s First AI-Powered Robot',
+        subtitle: 'Be part of the Algiers TechXpo 2025 and experience DZ-Bot.',
     },
     {
         id: 2,
         image: img3,
         title: 'Harmony Stride International Marathon 2025',
-        subtitle: 'Join thousands of runners from around the world for the Harmony Stride International Marathon 2025! Experience the thrill of running through scenic routes while supporting a great cause.',
+        subtitle: 'Join thousands of runners from around the world!',
     },
     {
         id: 3,
         image: img4,
         title: "Global Health and Wellness Virtual Conference",
-        subtitle: "Join us for a virtual event featuring keynote speakers, panel discussions, and interactive sessions. Connect with experts, explore virtual booths, and network with wellness enthusiasts worldwide."
+        subtitle: "Keynote speakers, panel discussions, and interactive sessions.",
     },
     {
         id: 4,
         image: img1,
-        title: 'Innovating with DZ-Bot: Algeria’s First AI-Powered Robot for Healthcare and Education',
-        subtitle: 'Be part of the Algiers TechXpo 2025 and experience DZ-Bot, the revolutionary robot created by Algerian engineers. Fluent in Algerian Arabic and Tamazight, DZ-Bot is here to redefine healthcare and education.',
+        title: 'Innovating with DZ-Bot: Algeria\'s First AI-Powered Robot',
+        subtitle: 'Be part of the Algiers TechXpo 2025.',
     },
     {
         id: 5,
         image: img3,
         title: 'Harmony Stride International Marathon 2025',
-        subtitle: 'Join thousands of runners from around the world for the Harmony Stride International Marathon 2025! Experience the thrill of running through scenic routes while supporting a great cause.',
+        subtitle: 'Join thousands of runners from around the world!',
     },
     {
         id: 6,
         image: img4,
         title: "Global Health and Wellness Virtual Conference",
-        subtitle: "Join us for a virtual event featuring keynote speakers, panel discussions, and interactive sessions. Connect with experts, explore virtual booths, and network with wellness enthusiasts worldwide."
+        subtitle: "Keynote speakers, panel discussions, and interactive sessions.",
     }
 ];
 
@@ -53,21 +52,21 @@ export const UpcomingEvent = () => {
     const scrollRef = useRef(null);
     const [alert, setAlert] = useState(null);
     const [eventLikes, setEventLikes] = useState(() => {
-      const initialLikes = {};
-      upcomingEvents.forEach(event => {
-        initialLikes[event.id] = false; // Initialize all events to not liked
-      });
-      return initialLikes;
-    }); // Track like status for each event
-    const [shareMenuOpen, setShareMenuOpen] = useState({}); // Track share menu open state for each event
-    const [moreMenuOpen, setMoreMenuOpen] = useState({}); // Track more menu open state for each event
+        const initialLikes = {};
+        upcomingEvents.forEach(event => { initialLikes[event.id] = false; });
+        return initialLikes;
+    });
+    const [shareMenuOpen, setShareMenuOpen] = useState({});
+    const [moreMenuOpen, setMoreMenuOpen] = useState({});
 
     useEffect(() => {
         const container = scrollRef.current;
         if (container) {
-            const scrollAmount = (container.offsetWidth - container.offsetWidth * 0.5) / 2;
+            const isMobile = window.innerWidth < 768;
+            const cardWidth = isMobile ? container.offsetWidth * 0.8 : container.offsetWidth * 0.5;
+            const scrollAmount = (container.offsetWidth - cardWidth) / 2;
             container.scrollTo({
-                left: scrollAmount + activeIndex * (container.offsetWidth * 0.5),
+                left: scrollAmount + activeIndex * cardWidth,
                 behavior: 'smooth',
             });
         }
@@ -77,7 +76,8 @@ export const UpcomingEvent = () => {
         const container = scrollRef.current;
         if (!container) return;
 
-        const cardWidth = container.offsetWidth * 0.5; // Active card width
+        const isMobile = window.innerWidth < 768;
+        const cardWidth = isMobile ? container.offsetWidth * 0.8 : container.offsetWidth * 0.5;
         const scrollAmount = (container.offsetWidth - cardWidth) / 2;
         const newIndex = direction === 'right' ? activeIndex + 1 : activeIndex - 1;
 
@@ -91,79 +91,57 @@ export const UpcomingEvent = () => {
     };
 
     const handleLike = useCallback(async (eventId, isLiked) => {
-      try {
-        // Optimistically update the UI immediately
         setEventLikes(prevLikes => ({ ...prevLikes, [eventId]: isLiked }));
-
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate 500ms delay
-
+        await new Promise(resolve => setTimeout(resolve, 500));
         console.log(`Event ${eventId} like status updated to ${isLiked}`);
-
-      } catch (error) {
-        console.error("Error updating like status:", error);
-        // Revert the UI state in case of an error
-        setEventLikes(prevLikes => ({ ...prevLikes, [eventId]: !isLiked })); // Revert on error
-      }
     }, []);
 
     const toggleShareMenu = useCallback((eventId) => {
-        setShareMenuOpen(prevShareMenuOpen => ({
-            ...prevShareMenuOpen,
-            [eventId]: !prevShareMenuOpen[eventId],
-        }));
+        setShareMenuOpen(prev => ({ ...prev, [eventId]: !prev[eventId] }));
     }, []);
 
     const toggleMoreMenu = useCallback((eventId) => {
-        setMoreMenuOpen(prevMoreMenuOpen => ({
-            ...prevMoreMenuOpen,
-            [eventId]: !prevMoreMenuOpen[eventId],
-        }));
+        setMoreMenuOpen(prev => ({ ...prev, [eventId]: !prev[eventId] }));
     }, []);
 
     const handleRegister = useCallback((eventId) => {
-      setAlert({ message: `Successfully registered for event ${eventId}!`, type: 'success' });
-        // alert(`Registering for event ${eventId}`);
+        setAlert({ message: `Successfully registered for event ${eventId}!`, type: 'success' });
     }, []);
 
     const handleContact = useCallback((eventId) => {
-      setAlert({ message: `Contacting organizer for event ${eventId}...`, type: 'info' });
-        // alert(`Contacting organizer for event ${eventId}`);
+        setAlert({ message: `Contacting organizer for event ${eventId}...`, type: 'info' });
     }, []);
 
-   const handleCloseAlert = () => {
-        setAlert(null);
-    };
+    const handleCloseAlert = () => { setAlert(null); };
 
     return (
-        <section className="relative container mx-auto px-4 py-8" id='upcomingEvent'>
-            <h1 className="text-3xl font-bold mb-6 text-center text-white">Upcoming Events</h1>
-            {alert && (
-                <Alert message={alert.message} type={alert.type} onClose={handleCloseAlert} />
-            )}
+        <section className="relative container mx-auto px-2 sm:px-4 py-6 sm:py-8" id='upcomingEvent'>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center text-white">Upcoming Events</h1>
+            {alert && <Alert message={alert.message} type={alert.type} onClose={handleCloseAlert} />}
+            
             <div
                 ref={scrollRef}
                 className="relative flex items-center overflow-x-auto scrollbar-hide"
                 style={{
-                    paddingLeft: '10vw', // Space for first card to be partially visible
-                    paddingRight: '10vw', // Space for last card to be partially visible
+                    paddingLeft: '5vw',
+                    paddingRight: '5vw',
                     scrollSnapType: 'x mandatory',
                 }}
             >
                 {upcomingEvents.map((event, index) => {
                     const isActive = index === activeIndex;
-                    const isLiked = eventLikes[event.id] || false;
-                    const shareMenuIsOpen = shareMenuOpen[event.id] || false;
-                    const moreMenuIsOpen = moreMenuOpen[event.id] || false;
-                    const shareUrl = `https://example.com/events/${event.id}`; // Replace with your actual URL
+                    const isMobile = window.innerWidth < 768;
+                    const cardWidth = isMobile ? '70vw' : '50vw';
+                    const inactiveWidth = isMobile ? '50vw' : '30vw';
+                    const cardHeight = isMobile ? '280px' : (isActive ? '400px' : '300px');
 
                     return (
                         <div
                             key={event.id}
-                            className={`flex-shrink-0 transition-all duration-300 rounded-3xl mx-2 relative`}
+                            className="flex-shrink-0 transition-all duration-300 rounded-3xl mx-1 sm:mx-2 relative"
                             style={{
-                                width: isActive ? '50vw' : '30vw', // Adjusted width for active and inactive cards
-                                height: isActive ? '400px' : '300px',
+                                width: isActive ? cardWidth : inactiveWidth,
+                                height: cardHeight,
                                 opacity: isActive ? 1 : 0.5,
                                 transform: isActive ? 'scale(1)' : 'scale(0.9)',
                                 transition: 'all 0.3s ease-in-out',
@@ -175,29 +153,20 @@ export const UpcomingEvent = () => {
                                 alt="Event"
                                 className="w-full h-full object-cover rounded-3xl"
                             />
-                            <div className="absolute top-4 right-4 flex flex-col items-center border border-white p-2 rounded-sm">
-                                <HeartIcon eventId={event.id} isLiked={isLiked} onLike={handleLike} />
-
+                            <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex flex-col items-center border border-white p-1 sm:p-2 rounded-sm">
+                                <HeartIcon eventId={event.id} isLiked={eventLikes[event.id] || false} onLike={handleLike} />
                                 <div className="relative">
-                                    <button
-                                        onClick={() => toggleShareMenu(event.id)}
-                                        className="mb-2"
-                                        aria-label="Share"
-                                    >
-                                        <FaShareAlt color="white" size={24} />
+                                    <button onClick={() => toggleShareMenu(event.id)} className="mb-1 sm:mb-2">
+                                        <FaShareAlt color="white" size={16} className="sm:w-6 sm:h-6" />
                                     </button>
-                                    <ShareMenu isOpen={shareMenuIsOpen} onClose={() => toggleShareMenu(event.id)} shareUrl={shareUrl} />
+                                    <ShareMenu isOpen={shareMenuOpen[event.id] || false} onClose={() => toggleShareMenu(event.id)} shareUrl={`https://example.com/events/${event.id}`} />
                                 </div>
-
                                 <div className="relative">
-                                    <button
-                                        onClick={() => toggleMoreMenu(event.id)}
-                                        aria-label="More Options"
-                                    >
-                                        <FaEllipsisH color="white" size={24} />
+                                    <button onClick={() => toggleMoreMenu(event.id)}>
+                                        <FaEllipsisH color="white" size={16} className="sm:w-6 sm:h-6" />
                                     </button>
                                     <MoreOptionsMenu
-                                        isOpen={moreMenuIsOpen}
+                                        isOpen={moreMenuOpen[event.id] || false}
                                         onClose={() => toggleMoreMenu(event.id)}
                                         onRegister={() => handleRegister(event.id)}
                                         onContact={() => handleContact(event.id)}
@@ -205,10 +174,14 @@ export const UpcomingEvent = () => {
                                 </div>
                             </div>
 
-                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-black-52">
-                                <h2 className="text-lg font-bold text-white mb-2">{event.title}</h2>
-                                <p className="text-gray-200 text-sm mb-2 ">{event.subtitle}</p>
-                                <button className="btn-effect text-white ">
+                            <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-4 bg-black-52 rounded-b-3xl">
+                                <h2 className="text-xs sm:text-sm md:text-lg font-bold text-white mb-1 sm:mb-2 line-clamp-2">
+                                    {event.title}
+                                </h2>
+                                <p className="text-gray-200 text-xs sm:text-sm mb-1 sm:mb-2 line-clamp-2 sm:line-clamp-3">
+                                    {event.subtitle}
+                                </p>
+                                <button className="btn-effect text-white text-xs sm:text-sm">
                                     More Details
                                 </button>
                             </div>
@@ -220,19 +193,18 @@ export const UpcomingEvent = () => {
             {/* Navigation Buttons */}
             <button
                 onClick={() => handleScroll('left')}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-gray-200 rounded-full p-3 z-10"
+                className="absolute left-1 sm:left-4 top-1/2 transform -translate-y-1/2 bg-gray-200 rounded-full p-1.5 sm:p-3 z-10"
                 aria-label="Previous event"
             >
-                <MdArrowBackIos className="text-xl" />
+                <MdArrowBackIos className="text-sm sm:text-xl" />
             </button>
             <button
                 onClick={() => handleScroll('right')}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-gray-200 rounded-full p-3 z-10"
+                className="absolute right-1 sm:right-4 top-1/2 transform -translate-y-1/2 bg-gray-200 rounded-full p-1.5 sm:p-3 z-10"
                 aria-label="Next event"
             >
-                <MdArrowForwardIos className="text-xl" />
+                <MdArrowForwardIos className="text-sm sm:text-xl" />
             </button>
         </section>
     );
 };
-
